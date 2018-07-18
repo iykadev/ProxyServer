@@ -2,8 +2,8 @@ import json
 from queue import Queue
 
 import manager
-import server_module_packager as mp
 import packet
+import server_module_packager as mp
 from log import log
 
 

@@ -33,7 +33,7 @@ class ReceptionManager(manager.Manager):
         pass
 
     def loop(self):
-        self.clnthndlr.connection.setblocking(0)
+        self.clnthndlr.conn.setblocking(0)
         try:
             self._handle_reception(self.clnthndlr.receive_data(1))
         except socket.error as e:
@@ -43,5 +43,4 @@ class ReceptionManager(manager.Manager):
             if not str(e) == "[WinError 10054] An existing connection was forcibly closed by the remote host":
                 log(e)
             self.clnthndlr.isConnected = False
-        self.clnthndlr.connection.setblocking(1)
-
+        self.clnthndlr.conn.setblocking(1)
