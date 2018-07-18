@@ -2,8 +2,8 @@ import socket
 import threading
 from queue import Queue
 
-import server_packet
-import server_thread
+import packet
+import pthread
 from log import log
 
 server_name = "SERVER"
@@ -49,7 +49,7 @@ class Client:
 
     # receives a packet from client and adds it to a queue
     def _receive_packet(self, buffer_length):
-        return server_packet.Packet(self.connection.recv(buffer_length))
+        return packet.Packet(self.connection.recv(buffer_length))
 
     def _receive_data(self, buffer_length):
         return self.connection.recv(buffer_length)
@@ -79,13 +79,13 @@ class Client:
 
     def handle_receiving_data(self, initial_data):
         data = initial_data.decode('utf8')
-        while len(data) < len(server_packet.STREAM_TERMINATING_BYTE) or data[-len(
-                server_packet.STREAM_TERMINATING_BYTE):] != server_packet.STREAM_TERMINATING_BYTE.decode(
+        while len(data) < len(packet.STREAM_TERMINATING_BYTE) or data[-len(
+                packet.STREAM_TERMINATING_BYTE):] != packet.STREAM_TERMINATING_BYTE.decode(
             'utf8'):
             data += self.receive_data(1).decode('utf8')
 
-        data = data[:-len(server_packet.STREAM_TERMINATING_BYTE)]
-        data = server_packet.Packet(str.encode(data))
+        data = data[:-len(packet.STREAM_TERMINATING_BYTE)]
+        data = packet.Packet(str.encode(data))
 
         if SHOW_SOCKET_COMS:
             log("<%s>" % self.client_name, data, '\n')
@@ -93,7 +93,7 @@ class Client:
         return data
 
     def handle_connection(self):
-        thread = server_thread.SThread(self.call_back, (self, *self.call_back_args), is_daemon=False)
+        thread = pthread.PThread(self.call_back, (self, *self.call_back_args), is_daemon=False)
         thread.start()
         return thread
 

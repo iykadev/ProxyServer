@@ -1,13 +1,13 @@
 import json
 from queue import Queue
 
-import server_manager
-import server_module_handler as mh
-import server_packet
+import manager
+import server_module_packager as mp
+import packet
 from log import log
 
 
-class ModuleManager(server_manager.Manager):
+class ModuleManager(manager.Manager):
 
     def __init__(self, clnthndlr):
         self.clnthndlr = clnthndlr
@@ -15,24 +15,24 @@ class ModuleManager(server_manager.Manager):
         self.module = None
 
     def _export_module_data(self, module_data):
-        pk = server_packet.Packet(module_data, server_packet.PACKET_ID_FUNC_INIT)
+        pk = packet.Packet(module_data, packet.PACKET_ID_FUNC_INIT)
         self.clnthndlr.send_packet(pk)
 
     def _func_call_return_value(self, return_data):
-        pk = server_packet.Packet(str(return_data), server_packet.PACKET_ID_FUNC_CALL_RETURN)
+        pk = packet.Packet(str(return_data), packet.PACKET_ID_FUNC_CALL_RETURN)
         self.clnthndlr.send_packet(pk)
 
     def _func_call_return_error(self, error_info):
-        pk = server_packet.Packet((str(dict(data=error_info))), server_packet.PACKET_ID_FUNC_CALL_ERROR)
+        pk = packet.Packet((str(dict(data=error_info))), packet.PACKET_ID_FUNC_CALL_ERROR)
         self.clnthndlr.send_packet(pk)
 
     def handle_request(self, clnthndlr, packet_id, data):
         try:
-            if packet_id is server_packet.PACKET_ID_FUNC_INIT:
+            if packet_id is packet.PACKET_ID_FUNC_INIT:
                 # Module Handler
-                formatted_modue_export = mh.format_module_export(self.module)
+                formatted_modue_export = mp.format_module_export(self.module)
                 self.requests_queue.put((packet_id, formatted_modue_export))
-            elif packet_id is server_packet.PACKET_ID_FUNC_CALL:
+            elif packet_id is packet.PACKET_ID_FUNC_CALL:
                 data = json.loads(data.get_data())
 
                 host_cls = data["host_cls"]
@@ -42,23 +42,23 @@ class ModuleManager(server_manager.Manager):
 
                 result = None
 
-                if func_type == mh.FUNC_TYPE.MODULE_FUNC.value:
-                    result = mh.exec_func(self.module, func_name, *func_args)
-                elif func_type == mh.FUNC_TYPE.INSTANCE_FUNC.value:
+                if func_type == mp.FUNC_TYPE.MODULE_FUNC.value:
+                    result = mp.exec_func(self.module, func_name, *func_args)
+                elif func_type == mp.FUNC_TYPE.INSTANCE_FUNC.value:
                     # TODO resolve instance methods
                     # cls_instance = cls()
                     # method = getattr(cls_instance, func_name)
                     # result = method(*func_args)
                     result = "INSTANCE_METHODS ARE NOT SUPPORTED ATM"
-                elif func_type == mh.FUNC_TYPE.CLASS_FUNC.value:
-                    cls = mh.get_class(self.module, host_cls)
-                    result = mh.exec_func(cls, func_name, *func_args)
-                elif func_type == mh.FUNC_TYPE.PROPERTY_FUNC.value:
+                elif func_type == mp.FUNC_TYPE.CLASS_FUNC.value:
+                    cls = mp.get_class(self.module, host_cls)
+                    result = mp.exec_func(cls, func_name, *func_args)
+                elif func_type == mp.FUNC_TYPE.PROPERTY_FUNC.value:
                     # TODO resolve property methods
                     result = "PROPERTY_METHODS ARE NOT SUPPORTED ATM"
-                elif func_type == mh.FUNC_TYPE.STATIC_FUNC.value:
-                    cls = mh.get_class(self.module, host_cls)
-                    result = mh.exec_func(cls, func_name, *func_args)
+                elif func_type == mp.FUNC_TYPE.STATIC_FUNC.value:
+                    cls = mp.get_class(self.module, host_cls)
+                    result = mp.exec_func(cls, func_name, *func_args)
 
                     # TODO remove redundant encoding/decoding
                     self.requests_queue.put((packet_id, result))
@@ -68,7 +68,7 @@ class ModuleManager(server_manager.Manager):
             raise e
 
     def init(self):
-        self.module = mh.load_module("secretmath")
+        self.module = mp.load_module("secretmath")
 
     def loop(self):
         if not self.module:
@@ -78,9 +78,9 @@ class ModuleManager(server_manager.Manager):
         if not self.requests_queue.empty():
             (packet_ID, result) = self.requests_queue.get()
 
-            if packet_ID is server_packet.PACKET_ID_FUNC_INIT:
+            if packet_ID is packet.PACKET_ID_FUNC_INIT:
                 self._export_module_data(result)
-            elif packet_ID is server_packet.PACKET_ID_FUNC_CALL:
+            elif packet_ID is packet.PACKET_ID_FUNC_CALL:
                 self._func_call_return_value(result)
 
     def responds_to(self, packet_id):
