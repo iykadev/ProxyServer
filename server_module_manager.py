@@ -11,7 +11,6 @@ class ModuleManager(manager.Manager):
 
     def __init__(self, clnthndlr):
         self.clnthndlr = clnthndlr
-        self.requests_queue = Queue()
         self.module = None
 
     def _export_module_data(self, module_data):
@@ -31,7 +30,7 @@ class ModuleManager(manager.Manager):
             if packet_id is packet.PACKET_ID_FUNC_INIT:
                 # Module Handler
                 formatted_modue_export = mp.format_module_export(self.module)
-                self.requests_queue.put((packet_id, formatted_modue_export))
+                self._export_module_data(formatted_modue_export)
             elif packet_id is packet.PACKET_ID_FUNC_CALL:
                 data = json.loads(data.get_data())
 
@@ -60,8 +59,7 @@ class ModuleManager(manager.Manager):
                     cls = mp.get_class(self.module, host_cls)
                     result = mp.exec_func(cls, func_name, *func_args)
 
-                    # TODO remove redundant encoding/decoding
-                    self.requests_queue.put((packet_id, result))
+                    self._func_call_return_value(result)
         except Exception as e:
             log(e)
             self._func_call_return_error(str(e))
@@ -71,17 +69,7 @@ class ModuleManager(manager.Manager):
         self.module = mp.load_module("secretmath")
 
     def loop(self):
-        if not self.module:
-            log("Module not initialized")
-            return
-
-        if not self.requests_queue.empty():
-            (packet_ID, result) = self.requests_queue.get()
-
-            if packet_ID is packet.PACKET_ID_FUNC_INIT:
-                self._export_module_data(result)
-            elif packet_ID is packet.PACKET_ID_FUNC_CALL:
-                self._func_call_return_value(result)
+        pass
 
     def responds_to(self, packet_id):
         return 0 <= packet_id < 100

@@ -10,32 +10,24 @@ class ReceptionManager(manager.Manager):
         self.clnthndlr = clnthndlr
         self.managers = managers
 
-    def _handle_reception(self, intial_data):
-        data = self.clnthndlr.handle_receiving_data(intial_data)
+    def _handle_reception(self):
+        self.clnthndlr.conn.setblocking(0)
 
-        try:
-            packet_id = data.packet_id
+        data = self.clnthndlr.handle_receiving_data()
 
-            for manager in self.managers:
-                if manager.responds_to(packet_id):
-                    manager.handle_request(self.clnthndlr, packet_id, data)
-                    break
+        packet_id = data.packet_id
 
-        except Exception as e:
-            if str(e) == "[WinError 10035] A non-blocking socket operation could not be completed immediately":
-                return
-
-            if not str(e) == "[WinError 10054] An existing connection was forcibly closed by the remote host":
-                log(e)
-            self.clnthndlr.isConnected = False
+        for man in self.managers:
+            if man.responds_to(packet_id):
+                man.handle_request(self.clnthndlr, packet_id, data)
+                break
 
     def init(self):
         pass
 
     def loop(self):
-        self.clnthndlr.conn.setblocking(0)
         try:
-            self._handle_reception(self.clnthndlr.receive_data(1))
+            self._handle_reception()
         except socket.error as e:
             if str(e) == "[WinError 10035] A non-blocking socket operation could not be completed immediately":
                 return
@@ -43,4 +35,4 @@ class ReceptionManager(manager.Manager):
             if not str(e) == "[WinError 10054] An existing connection was forcibly closed by the remote host":
                 log(e)
             self.clnthndlr.isConnected = False
-        self.clnthndlr.conn.setblocking(1)
+        #self.clnthndlr.conn.setblocking(1)
