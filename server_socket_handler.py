@@ -48,6 +48,8 @@ def init_socket(ip, port, connection_buffer_limit):
 
     log("Listening on:", ip + ':' + str(port) + '\n')
 
+    #s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
     return s
 
 

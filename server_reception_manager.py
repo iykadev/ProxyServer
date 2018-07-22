@@ -5,6 +5,7 @@ from log import log
 
 
 class ReceptionManager(manager.Manager):
+    __slots__ = ['clnthndlr', 'managers']
 
     def __init__(self, clnthndlr, managers):
         self.clnthndlr = clnthndlr

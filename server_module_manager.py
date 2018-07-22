@@ -8,6 +8,7 @@ from log import log
 
 
 class ModuleManager(manager.Manager):
+    __slots__ = ['clnthndlr', 'module']
 
     def __init__(self, clnthndlr):
         self.clnthndlr = clnthndlr
